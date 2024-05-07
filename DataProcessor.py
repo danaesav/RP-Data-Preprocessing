@@ -126,6 +126,7 @@ class DataProcessor:
         # indices = in_box.index.tolist()  # the indices of the sensors we train and test with
 
         scattered_points = select_scattered_points(in_box, num_points)
+        ids = scattered_points.sensor_id.tolist()
         indices = scattered_points.index.tolist()
 
 
@@ -134,6 +135,9 @@ class DataProcessor:
         # filtered_dataset.to_hdf("../Datasets/" + self.dataset_name + "/" + filename+".h5", key='subregion_test', mode='w')
         # filtered_dataset.to_hdf("../D2STGNN-github/datasets/raw_data/" + self.dataset_file_name + "/" + filename + ".h5", key='subregion_test',
         #                         mode='w')
+
+        with open("ids/" + filename + ".txt", 'w') as file:
+            file.write(','.join(map(str, ids)))
 
         # with open("indices/"+filename + ".txt", 'w') as file:
         #     file.write(f"{len(indices)}\n")
