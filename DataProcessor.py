@@ -1,12 +1,12 @@
+import io
 import itertools
 from tokenize import String
 
 import folium
-import numpy as np
 import pandas as pd
-from haversine import haversine, Unit, haversine_vector
-from scipy.spatial import distance_matrix
-from scipy.spatial.distance import pdist
+from PIL import Image
+from haversine import haversine, Unit
+from scipy.spatial import ConvexHull
 
 
 def read_ids_to_array(file_path):
@@ -53,44 +53,61 @@ def pairwise_distances(points_df, indices):
     return distances
 
 
-def select_scattered_points2(points, desired_density):
-    num_points = int(round(desired_density * get_area(points)))
-    combinations = itertools.combinations(points.index, num_points)
-    max_distance = 0
-    selected_indices = None
+def select_scattered_points(points, num_points):
+    # num_points = int(round(desired_density * get_area(points)))
+    if num_points >= len(points):
+        return points
 
-    # Pre-calculate the distance matrix
-    matrix = pairwise_distances(points, points.index)
-    print("done with matrix")
+    # Compute the convex hull of the points
+    hull = ConvexHull(points[['latitude', 'longitude']])
+    hull_points_indices = hull.vertices
 
-    for indices in combinations:
-        distances = [matrix[(i, j)] for i, j in itertools.combinations(indices, 2)]
-        non_zero_distances = [dist for dist in distances if dist != 0]
-        min_distance = min(non_zero_distances)
-        if min_distance > max_distance:
-            max_distance = min_distance
-            selected_indices = indices
-    print(selected_indices)
-    return points.loc[selected_indices, :]
+    selected_indices = []
+    selected_points = []
+
+    # Select up to num_points from the hull
+    for point_index in hull_points_indices:
+        if len(selected_points) < num_points:
+            selected_indices.append(point_index)
+            selected_points.append(points.iloc[point_index])
+
+    # If fewer than num_points are selected from the hull, select additional points from the interior
+    while len(selected_points) < num_points:
+        # Find the point from the interior that maximizes its distance from the selected points
+        max_distance = 0
+        max_distance_point_index = None
+        for i, point in points.iterrows():
+            if i not in selected_indices:
+                distances = [haversine((point['latitude'], point['longitude']),
+                                       (selected_point['latitude'], selected_point['longitude']),
+                                       unit=Unit.KILOMETERS) for selected_point in selected_points]
+                min_distance = min(distances)
+                if min_distance > max_distance:
+                    max_distance = min_distance
+                    max_distance_point_index = i
+
+        # Add the selected point to the list
+        selected_indices.append(max_distance_point_index)
+        selected_points.append(points.loc[max_distance_point_index])
+
+    selected_points_df = pd.DataFrame(selected_points)
+    return selected_points_df
 
 
 class DataProcessor:
-    def __init__(self, data_option, new_h5_filename, new_W_filename, sensor_locations_file):
+    def __init__(self, data_option, sensor_locations_file):
         self.sensor_locations_file = sensor_locations_file
         self.dataset_name = data_option[0]
         self.sensor_ids_file = data_option[1]
         self.dataset_file = data_option[2]
         self.coordinates = data_option[3]
-        self.W_file = data_option[4]
+        self.dataset_file_name = data_option[4]
         self.coordinates_bigger = data_option[5]
-        self.new_h5_filename = new_h5_filename
-        self.new_W_filename = new_W_filename
-        self.this_map = folium.Map(prefer_canvas=True)
+        self.this_map = folium.Map(prefer_canvas=True, zoom_start=50)
 
     def process_data(self):
-        sensor_locations = pd.read_csv("../Datasets/" + self.dataset_name + "/" + self.sensor_locations_file, index_col=0)
-        w_matrix = pd.read_csv("../Datasets/" + self.dataset_name + "/" + self.W_file)
-        data = pd.read_hdf("../Datasets/" + self.dataset_name + "/" + self.dataset_file)
+        sensor_locations = pd.read_csv("../Datasets/" + self.dataset_name + "/" + self.sensor_locations_file,
+                                       index_col=0)
 
         in_box = get_in_box(sensor_locations, self.coordinates)
         in_comp_box = get_in_box(sensor_locations, self.coordinates_bigger)
@@ -100,15 +117,32 @@ class DataProcessor:
                                       | (sensor_locations.longitude < self.coordinates[1])
                                       | (sensor_locations.longitude > self.coordinates[2])]
 
+        return in_box, in_comp_box, out_of_box
+
+    def save_filtered_data(self, in_box, num_points, filename):
+        data = pd.read_hdf("../Datasets/" + self.dataset_name + "/" + self.dataset_file + ".h5")
+
         # ids = in_box.sensor_id.tolist()  # the sensors we train and test with
-        indices = in_box.index.tolist()  # the indices of the sensors we train and test with
+        # indices = in_box.index.tolist()  # the indices of the sensors we train and test with
+
+        scattered_points = select_scattered_points(in_box, num_points)
+        indices = scattered_points.index.tolist()
+
+
         # save new subset of data
         filtered_dataset = data.iloc[:, indices]
-        filtered_dataset.to_hdf("../Datasets/" + self.dataset_name + "/" + self.new_h5_filename, key='subregion_test', mode='w')
-        filtered_w_matrix = w_matrix.iloc[indices, indices]
-        filtered_w_matrix.to_csv("../Datasets/" + self.dataset_name + "/" + self.new_W_filename, index=False)
+        # filtered_dataset.to_hdf("../Datasets/" + self.dataset_name + "/" + filename+".h5", key='subregion_test', mode='w')
+        # filtered_dataset.to_hdf("../D2STGNN-github/datasets/raw_data/" + self.dataset_file_name + "/" + filename + ".h5", key='subregion_test',
+        #                         mode='w')
 
-        return in_box, in_comp_box, out_of_box
+        # with open("indices/"+filename + ".txt", 'w') as file:
+        #     file.write(f"{len(indices)}\n")
+        #     file.write(','.join(map(str, indices)))
+
+        return scattered_points
+
+    def reset_map(self):
+        self.this_map = folium.Map(prefer_canvas=True, zoom_start=50)
 
     def plotDot(self, point, color):
         folium.CircleMarker(location=[point.latitude, point.longitude], radius=8, color=color, stroke=False, fill=True,
@@ -119,4 +153,10 @@ class DataProcessor:
         in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
         in_box.apply(self.plotDot, axis=1, args=("#FF0000",))
         self.this_map.fit_bounds(self.this_map.get_bounds())
-        self.this_map.save(name)
+
+        # TO SAVE
+        # self.this_map.save("html/" + name + ".html")
+        # img_data = self.this_map._to_png(5)
+        # img = Image.open(io.BytesIO(img_data))
+        # img.save("images/" + name + ".png")
+        # self.reset_map()
