@@ -1,10 +1,8 @@
 import io
 import itertools
-from tokenize import String
 
 import folium
 import pandas as pd
-from PIL import Image
 from haversine import haversine, Unit
 from scipy.spatial import ConvexHull
 
@@ -152,7 +150,7 @@ class DataProcessor:
         folium.CircleMarker(location=[point.latitude, point.longitude], radius=8, color=color, stroke=False, fill=True,
                             fill_opacity=0.8, opacity=1, popup=point.sensor_id, fill_color=color).add_to(self.this_map)
 
-    def plot_data(self, name: String, in_box, in_comp_box, out_of_box):
+    def plot_data(self, name, in_box, in_comp_box, out_of_box):
         out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
         in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
         in_box.apply(self.plotDot, axis=1, args=("#FF0000",))

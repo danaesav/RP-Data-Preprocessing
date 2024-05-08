@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#SBATCH --job-name="dcrnn test"
+#SBATCH --job-name="d2stgnn adj"
 #SBATCH --partition=gpu
 #SBATCH --time=00:10:00
 #SBATCH --ntasks=1
@@ -16,6 +16,9 @@ module load py-itertools
 module load py-numpy
 module load py-pandas
 module load py-pickle
+module load py-haversine
+module load py-os
+module load py-folium
 
 cd ..
 
