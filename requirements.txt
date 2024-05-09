@@ -1,6 +1,4 @@
-pickle
 haversine
 pandas
-os
 folium
 itertools
