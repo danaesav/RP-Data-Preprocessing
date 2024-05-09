@@ -14,10 +14,13 @@ module load py-pip/22.2.2
 module load py-future
 module load py-numpy
 module load py-pandas
-module load py-haversine
-module load py-os
-module load py-folium
 
 cd ..
+
+pip install pickle
+pip install os
+pip install haversine
+pip install folium
+pip install itertools
 
 srun  python main.py  > output_train.log
