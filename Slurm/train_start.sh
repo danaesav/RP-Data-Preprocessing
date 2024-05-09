@@ -17,10 +17,6 @@ module load py-pandas
 
 cd ..
 
-pip install pickle
-pip install os
-pip install haversine
-pip install folium
-pip install itertools
+pip install -r requirements.txt
 
 srun  python main.py  > output_train.log
