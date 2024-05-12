@@ -13,6 +13,7 @@ module load python/3.9.8
 module load py-pip/22.2.2
 module load py-future
 module load py-numpy
+module load py-scipy
 
 cd ..
 
