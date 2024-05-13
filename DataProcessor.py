@@ -95,16 +95,16 @@ def select_scattered_points(points, num_points):
 class DataProcessor:
     def __init__(self, data_option, sensor_locations_file):
         self.sensor_locations_file = sensor_locations_file
-        self.dataset_name = data_option[0]
+        # self.dataset_name = data_option[0]
         self.sensor_ids_file = data_option[1]
         self.dataset_file = data_option[2]
         self.coordinates = data_option[3]
-        self.dataset_file_name = data_option[4]
+        self.dataset_name = data_option[4]
         self.coordinates_bigger = data_option[5]
         self.this_map = folium.Map(prefer_canvas=True, zoom_start=50)
 
     def process_data(self):
-        sensor_locations = pd.read_csv("../Datasets/" + self.dataset_name + "/" + self.sensor_locations_file,
+        sensor_locations = pd.read_csv("Datasets/" + self.dataset_name + "/" + self.sensor_locations_file,
                                        index_col=0)
 
         in_box = get_in_box(sensor_locations, self.coordinates)
@@ -118,7 +118,7 @@ class DataProcessor:
         return in_box, in_comp_box, out_of_box
 
     def save_filtered_data(self, in_box, num_points, filename):
-        data = pd.read_hdf("../Datasets/" + self.dataset_name + "/" + self.dataset_file + ".h5")
+        data = pd.read_hdf("Datasets/" + self.dataset_name + "/" + self.dataset_file + ".h5")
 
         # ids = in_box.sensor_id.tolist()  # the sensors we train and test with
         # indices = in_box.index.tolist()  # the indices of the sensors we train and test with
@@ -131,11 +131,11 @@ class DataProcessor:
         # save new subset of data
         filtered_dataset = data.iloc[:, indices]
         # filtered_dataset.to_hdf("../Datasets/" + self.dataset_name + "/" + filename+".h5", key='subregion_test', mode='w')
-        # filtered_dataset.to_hdf("../D2STGNN-github/datasets/raw_data/" + self.dataset_file_name + "/" + filename + ".h5", key='subregion_test',
-        #                         mode='w')
+        filtered_dataset.to_hdf("../D2STGNN-github/datasets/raw_data/" + self.dataset_name + "/" + filename + ".h5", key='subregion_test',
+                                mode='w')
 
-        with open("ids/" + filename + ".txt", 'w') as file:
-            file.write(','.join(map(str, ids)))
+        # with open("ids/" + filename + ".txt", 'w') as file:
+        #     file.write(','.join(map(str, ids)))
 
         # with open("indices/"+filename + ".txt", 'w') as file:
         #     file.write(f"{len(indices)}\n")
