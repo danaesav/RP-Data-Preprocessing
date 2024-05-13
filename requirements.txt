@@ -1,3 +1,4 @@
 haversine
 pandas
 folium
+tables
