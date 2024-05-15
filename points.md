@@ -1,13 +1,13 @@
 ### METR-LA Most Scattered points:
 
-#### Small area
+#### Small area - 7.5 miles of road distance covered
 - 24: all points (density at max)
 - 18: (10, 40, 61, 67, 68, 70, 72, 73, 74, 102, 103, 113, 117, 119, 122, 141, 164, 190) (density = 0.75*original)
 - 12: (10, 61, 67, 68, 70, 72, 73, 102, 103, 117, 122, 141) (density/2)
 - 8: (10, 67, 68, 70, 72, 73, 102, 118) (density/3)
 - 6: (10, 40, 67, 73, 74, 102) (density/4)
 
-#### Larger area - 55 points
+#### Larger area - 15.4 miles of road distance covered
 - 55: all points (density at max)
 - 41: (86, 89, 83, 31, 67, 74, 9, 148, 87, 47, 72, 76, 141, 102, 77, 176, 70, 197, 118, 75, 156, 52, 81, 73, 61, 100, 63, 131,  43, 103, 104, 130, 119, 40, 146, 158, 190, 68, 84, 69, 113) (density = 0.75*original
 - 28: (86, 89, 83, 31, 67, 74, 9, 148, 87, 47, 72, 76, 141, 102, 77, 176, 70, 197, 118, 75, 156, 52, 81, 73, 61, 100, 63, 131) (density/2)

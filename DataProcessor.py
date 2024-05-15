@@ -3,6 +3,7 @@ import itertools
 
 import folium
 import pandas as pd
+from PIL import Image
 from haversine import haversine, Unit
 from scipy.spatial import ConvexHull
 
@@ -18,28 +19,6 @@ def get_in_box(sensor_locs, coordinates_of_box):
                        & (sensor_locs.latitude <= coordinates_of_box[0])
                        & (sensor_locs.longitude >= coordinates_of_box[1])
                        & (sensor_locs.longitude <= coordinates_of_box[2])]
-
-
-def box_density(points):
-    return len(points) / get_area(points)  # in km^2
-
-
-def get_area(points):
-    min_lat = points['latitude'].min()
-    max_lat = points['latitude'].max()
-    min_lon = points['longitude'].min()
-    max_lon = points['longitude'].max()
-
-    width = haversine((min_lat, min_lon), (min_lat, max_lon), unit=Unit.KILOMETERS)
-    height = haversine((min_lat, min_lon), (max_lat, min_lon), unit=Unit.KILOMETERS)
-    return width * height
-
-
-def sample_random_points_with_density(points, desired_density):
-    num_points = int(round(desired_density * get_area(points)))
-    sampled_points = points.sample(n=num_points)
-    return sampled_points
-
 
 def pairwise_distances(points_df, indices):
     distances = {}
@@ -127,7 +106,6 @@ class DataProcessor:
         ids = scattered_points.sensor_id.tolist()
         indices = scattered_points.index.tolist()
 
-
         # save new subset of data
         filtered_dataset = data.iloc[:, indices]
         # filtered_dataset.to_hdf("../Datasets/" + self.dataset_name + "/" + filename+".h5", key='subregion_test', mode='w')
@@ -136,7 +114,7 @@ class DataProcessor:
 
         # with open("ids/" + filename + ".txt", 'w') as file:
         #     file.write(','.join(map(str, ids)))
-
+        #
         # with open("indices/"+filename + ".txt", 'w') as file:
         #     file.write(f"{len(indices)}\n")
         #     file.write(','.join(map(str, indices)))
@@ -150,9 +128,10 @@ class DataProcessor:
         folium.CircleMarker(location=[point.latitude, point.longitude], radius=8, color=color, stroke=False, fill=True,
                             fill_opacity=0.8, opacity=1, popup=point.sensor_id, fill_color=color).add_to(self.this_map)
 
-    def plot_data(self, name, in_box, in_comp_box, out_of_box):
+    def plot_data(self, name, in_box, in_comp_box, in_bigger, out_of_box):
         out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
         in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
+        in_bigger.apply(self.plotDot, axis=1, args=("#32cd32",))
         in_box.apply(self.plotDot, axis=1, args=("#FF0000",))
         self.this_map.fit_bounds(self.this_map.get_bounds())
 
