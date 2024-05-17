@@ -112,12 +112,12 @@ class DataProcessor:
         filtered_dataset.to_hdf("../D2STGNN-github/datasets/raw_data/" + self.dataset_name + "/" + filename + ".h5", key='subregion_test',
                                 mode='w')
 
-        # with open("ids/" + filename + ".txt", 'w') as file:
-        #     file.write(','.join(map(str, ids)))
-        #
-        # with open("indices/"+filename + ".txt", 'w') as file:
-        #     file.write(f"{len(indices)}\n")
-        #     file.write(','.join(map(str, indices)))
+        with open("ids/" + self.dataset_name + "/" + filename + ".txt", 'w') as file:
+            file.write(','.join(map(str, ids)))
+
+        with open("indices/" + self.dataset_name + "/" + filename + ".txt", 'w') as file:
+            file.write(f"{len(indices)}\n")
+            file.write(','.join(map(str, indices)))
 
         return scattered_points
 
