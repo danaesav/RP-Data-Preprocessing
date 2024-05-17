@@ -15,7 +15,7 @@ metrla_box_coordinates_2 = [34.097491, -118.265575, -118.207500, 34.048523]
 
 pemsbay_box_coordinates = [37.378342, -121.932272, -121.894512, 37.350266]
 pemsbay_box_coordinates_bigger = [37.393346, -121.952686, -121.873484, 37.329885]
-pemsbay_box_coordinates_2 = [37.285771, -121.983673, -121.915783, 37.240070]
+pemsbay_box_coordinates_2 = [37.421656, -122.085214, -122.038178, 37.378017]
 
 # [road_distance_small, sensor_ids_file, dataset_file, coordinates, dataset_name, coordinates_bigger, distances_filename, road_distance_large]
 metrla = [7.5, "metr_ids.txt", "metr-la", metrla_box_coordinates, "METR-LA", metrla_box_coordinates_bigger,
@@ -108,12 +108,12 @@ def concat_images(option):
 
 
 if __name__ == '__main__':
-    processor = DataProcessor(metrla, sensor_locations_file)
-    within_box, in_comparison_box, outside_of_box = processor.process_data()
-    processor = DataProcessor(metrla2, sensor_locations_file)
-    within_box2, in_comparison_box2, outside_of_box2 = processor.process_data()
-    processor.save_filtered_data(within_box2, len(within_box2), f"metr-la-comparison-100")
-    save_adj_mx(metrla[4] + "/" + f"{metrla[2]}-comparison-100", metrla)
+    # processor = DataProcessor(metrla, sensor_locations_file)
+    # within_box, in_comparison_box, outside_of_box = processor.process_data()
+    # processor = DataProcessor(metrla2, sensor_locations_file)
+    # within_box2, in_comparison_box2, outside_of_box2 = processor.process_data()
+    # processor.save_filtered_data(within_box2, len(within_box2), f"metr-la-comparison-100")
+    # save_adj_mx(metrla[4] + "/" + f"{metrla[2]}-comparison-100", metrla)
 
     processor2 = DataProcessor(pemsbay, sensor_locations_file)
     P_within_box, P_in_comparison_box, P_outside_of_box = processor2.process_data()
@@ -121,9 +121,9 @@ if __name__ == '__main__':
     P_within_box2, P_in_comparison_box2, P_outside_of_box2 = processor2.process_data()
     processor2.save_filtered_data(P_within_box2, len(P_within_box2), f"pems-bay-comparison-100")
     save_adj_mx(pemsbay[4] + "/" + f"{pemsbay[2]}-comparison-100", pemsbay)
-
-    # processor.plot_data(f"{h5_filename}-areas-comparison", within_box, within_box2, in_comparison_box, outside_of_box)
-
+    # print(len(P_within_box2))
+    processor2.plot_data(f"{pemsbay[2]}-areas-comparison", P_within_box, P_within_box2, P_in_comparison_box, P_outside_of_box)
+    # processor.plot_data(f"{metrla[2]}-areas-comparison", within_box, within_box2, in_comparison_box, outside_of_box)
     # generate_adj_mxs(metrla)
     # generate_h5_files(metrla)
     #

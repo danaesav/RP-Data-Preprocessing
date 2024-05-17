@@ -136,8 +136,8 @@ class DataProcessor:
         self.this_map.fit_bounds(self.this_map.get_bounds())
 
         # TO SAVE
-        # self.this_map.save("html/" + name + ".html")
-        # img_data = self.this_map._to_png(5)
-        # img = Image.open(io.BytesIO(img_data))
-        # img.save("images/" + name + ".png")
-        # self.reset_map()
+        self.this_map.save("html/" + name + ".html")
+        img_data = self.this_map._to_png(5)
+        img = Image.open(io.BytesIO(img_data))
+        img.save("images/" + name + ".png")
+        self.reset_map()
