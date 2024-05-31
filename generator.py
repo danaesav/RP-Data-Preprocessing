@@ -38,7 +38,7 @@ def save_adj_mx(filename, option):
 def generate_adj_mxs(option):
     for size, suffix in zip(sizes, suffixes):
         save_adj_mx(option[4] + "/" + f"{option[2]}-small-{suffix}", option)
-        # save_adj_mx(option[4] + "/" + f"{option[2]}-large-{suffix}", option)
+        save_adj_mx(option[4] + "/" + f"{option[2]}-large-{suffix}", option)
 
 
 def generate_h5_files(option):
@@ -46,7 +46,7 @@ def generate_h5_files(option):
     within_box, in_comparison_box, outside_of_box = processor.process_data()
     for size, suffix in zip(sizes, suffixes):
         processor.save_filtered_data(within_box, len(within_box) * size, f"{option[2]}-small-{suffix}")
-        # processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size, f"{option[2]}-large-{suffix}")
+        processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size, f"{option[2]}-large-{suffix}")
 
 def generate_plots(option):
     processor = DataProcessor(option, sensor_locations_file)

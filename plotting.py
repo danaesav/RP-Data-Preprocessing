@@ -6,6 +6,33 @@ scalability_ranking = ["comparison", "small", "large", "original"]
 complexity_ranking = ["025", "030", "050", "075", "100"]
 
 
+def plot_performance(y, runs, dataset, t, metric_name):
+    hist_list = {}
+    for run in runs:
+        if run.config["Size"] == "100" and run.config["Dataset"] == dataset:
+            hist_list[run.name] = run.history(keys=["Test MAE (AVG)", "Test RMSE (AVG)", "Test MAPE (AVG)", "_runtime"])
+
+    plot_data = []
+    for run_name, history in hist_list.items():
+        df = pd.DataFrame(history)
+        df['Run'] = run_name.split('-')[2].capitalize()
+        df['_runtime'] = df['_runtime'] / 60
+        plot_data.append(df)
+
+    plot_data = pd.concat(plot_data)
+
+    # Create line plot
+    hue_order = ["Comparison", "Small", "Large", "Original"]
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=plot_data, x='_runtime', y=y, hue='Run', hue_order=hue_order)
+    plt.xlabel('Runtime in minutes')
+    plt.ylabel(metric_name)
+    plt.title(dataset + ': ' + metric_name + ' vs Runtime')
+    plt.legend(title='Scenario')
+    plt.savefig("figures/" + dataset + "/lineplot-scalability-" + t + "-" + dataset.lower() + ".png")
+    plt.show()
+
+
 def plot_scalability(y, data, t):
     # data2 = data[data['Type'] != "comparison"]
     filtered_data = data[data['Size'] == "100"]
@@ -19,9 +46,9 @@ def plot_scalability(y, data, t):
     ax = g.facet_axis(0, 0)
     for i in range(0, len(ax.containers)):
         c = ax.containers[i]
-        labels = [f"{val:.2f}" for val in c.datavalues]
+        labels = [f"{val:.0f}" for val in c.datavalues]
         ax.bar_label(c, labels=labels, label_type='edge')
-    plt.savefig("figures/scalability-" + t + "-" + ".png")
+    plt.savefig("figures/scalability-" + t + ".png")
     plt.show()
 
 def plot_complexity(y, data, dataset, t):
@@ -37,7 +64,7 @@ def plot_complexity(y, data, dataset, t):
     ax = g.facet_axis(0, 0)
     for i in range(0, len(ax.containers)):
         c = ax.containers[i]
-        labels = [f"{val:.2f}" for val in c.datavalues]
+        labels = [f"{val:.0f}" for val in c.datavalues]
         ax.bar_label(c, labels=labels, label_type='edge')
     plt.savefig("figures/" + dataset + "/complexity-" + t + "-" + dataset.lower() + ".png")
     plt.show()
@@ -54,10 +81,12 @@ def get_wandb_df(runs):
         ('Average GPU % Used', 'summary', 'Average GPU % Usage'),
         ('Average Node Neighbors', 'summary', 'Average Node Neighbors'),
         ('Average Neighbors Ratio', 'summary', 'Average Neighbors Ratio'),
+        ('Edges', 'summary', 'Edges'),
         ('Nodes', 'config', 'Nodes'),
         ('Type', 'config', 'Type'),
         ('Size', 'config', 'Size'),
-        ('Dataset', 'config', 'Dataset')
+        ('Dataset', 'config', 'Dataset'),
+        ('Missing values %', 'config', 'Missing values %')
     ]
 
     data = {

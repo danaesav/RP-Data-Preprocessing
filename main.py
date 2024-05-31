@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import wandb
+from matplotlib import pyplot as plt
 
 from DataProcessor import DataProcessor, select_scattered_points
 from gen_adj_mx import analyze_adj_mx
 from generator import generate_h5_files, generate_adj_mxs, generate_plots
-from plotting import plot_scalability, plot_complexity
+from plotting import plot_scalability, plot_complexity, get_wandb_df, plot_performance
 
 # metrla_box_coordinates = [34.174317, -118.409044, -118.345701, 34.131097]
 metrla_box_coordinates_bigger = [34.18227, -118.511454, -118.345701, 34.131097]
@@ -38,30 +40,48 @@ def update_wandb():
     api = wandb.Api()
     runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
     # for run in runs:
-        # run.summary["AVG Training Time/nodes"] = run.summary['AVG Training time secs/epoch']/run.config['Nodes']
-    #     # run.summary.update(
-    #     #     {"Average GPU % Usage": np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])})
+    #     run.summary["AVG Training Time/nodes"] = run.summary['AVG Training time secs/epoch']/run.config['Nodes']
+    #     run.summary.update(
+    #         {"Average GPU % Usage": np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])})
     #     run.update()
+    for run in runs:
+        data1 = None
+        if run.config["Type"] == "original":
+            data1 = pd.read_hdf("Datasets/" + run.config["Dataset"] + "/" + run.config["Dataset"].lower() + ".h5")
+        else:
+            data1 = pd.read_hdf("../D2STGNN-github/datasets/raw_data/" + run.config["Dataset"] + "/" + run.name + ".h5")
+        zero_count1 = (data1 == 0).sum().sum()
+        print("Percentage of missing values in ", run.name, ": ", zero_count1 / (data1.shape[0] * data1.shape[1]) * 100)
+        run.summary.update(
+            {"Average GPU % Usage": np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])})
+        run.update()
+        run.summary["AVG Training Time/nodes"] = run.summary['AVG Training time secs/epoch'] / run.config['Nodes']
+        run.config["Missing values %"] = zero_count1 / (data1.shape[0] * data1.shape[1]) * 100
+        run.update()
 
 
 def scalability(scalability_data):
+    # plot_scalability("Missing values %", scalability_data, "missing_values")
     # plot_scalability("Mean Absolute Error (Horizons Average)", scalability_data, "mae")
-    plot_scalability("Root Mean Squared Error (Horizons Average)", scalability_data, "rmse")
+    # plot_scalability("Root Mean Squared Error (Horizons Average)", scalability_data, "rmse")
     # plot_scalability("Average Training Time (secs/epoch)", scalability_data, "time")
     # plot_scalability("Average Training Time/node", scalability_data, "time-per-node")
     # plot_scalability("Average GPU % Used", scalability_data, "gpu")
     # plot_scalability("Average Node Neighbors", scalability_data, "neighbors")
     # plot_scalability("Average Neighbors Ratio", scalability_data, "neigh_ratio")
+    plot_scalability("Edges", scalability_data, "edges")
 
 
 def complexity(complexity_data, dataset):
     # plot_complexity("Mean Absolute Error (Horizons Average)", complexity_data, dataset, "mae")
-    plot_complexity("Root Mean Squared Error (Horizons Average)", complexity_data, dataset, "rmse")
+    # plot_complexity("Root Mean Squared Error (Horizons Average)", complexity_data, dataset, "rmse")
+    # plot_complexity("Missing values %", complexity_data, dataset, "missing_values")
     # plot_complexity("Average Training Time (secs/epoch)", complexity_data, dataset, "time")
     # plot_complexity("Average Training Time/node", complexity_data, dataset, "time-per-node")
     # plot_complexity("Average GPU % Used", complexity_data, dataset, "gpu")
     # plot_complexity("Average Node Neighbors", complexity_data, dataset, "neighbors")
     # plot_complexity("Average Neighbors Ratio", complexity_data, dataset, "neigh_ratio")
+    plot_complexity("Edges", complexity_data, dataset, "edges")
 
 
 def stand_dev(dataset, typ, dataset_name, param):
@@ -70,45 +90,34 @@ def stand_dev(dataset, typ, dataset_name, param):
     print(dataset_name,"-", typ, filtered[param].std())
 
 
+
+def performance(runs, dataset):
+    plot_performance("Test MAE (AVG)", runs, dataset, "mae", "Test MAE (Horizon's Average)")
+    plot_performance("Test RMSE (AVG)", runs, dataset, "rmse", "Test RMSE (Horizon's Average)")
+
+
 if __name__ == '__main__':
-    # for suffix in suffixes:
-    #     for option in [metrla, pemsbay]:
-    #         name1 = option[2] + "large" + "-" + suffix
-    #         name2 = option[2] + "small" + "-" + suffix
-    #         data1 = pd.read_hdf("Datasets/" + option[4] + "/" + name1 + ".h5")
-    #         data2 = pd.read_hdf("Datasets/" + option[4] + "/" + name2 + ".h5")
-    #         zero_count1 = (data1 == 0).sum().sum()
-    #         zero_count2 = (data2 == 0).sum().sum()
-    #         print("Total number of zeros in ", name1, ": ", zero_count1 / (data1.shape[0] * data1.shape[1]))
-    #         print("Total number of zeros in ", name2, ": ", zero_count2 / (data2.shape[0] * data2.shape[1]))
-    # generate_h5_files(metrla)
-    generate_adj_mxs(metrla)
-    # generate_plots(metrla)
-
-    # processor = DataProcessor(metr, sensor_locations_file)
-    # within_box, in_comparison_box, outside_of_box = processor.process_data()
-    # for size, suffix in zip(sizes, suffixes):
-    #     processor.save_filtered_data(within_box, len(within_box) * size, f"{option[2]}-small-{suffix}")
-
-
     # update_wandb()
-    # wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
-    # api = wandb.Api()
-    # runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
+    wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
+    api = wandb.Api()
+    runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
     # analyze_adj_mx()
+
+    # performance(runs, "METR-LA")
+    # performance(runs, "PEMS-BAY")
 
     # processor = DataProcessor(data_option, sensor_locations_file)
     # in_box, in_comp_box, out_of_box = processor.process_data()
     # scattered_points = select_scattered_points(in_box, len(in_box))
     # processor.plot_data("comparison", in_box, in_box, out_of_box)
 
-    # data = get_wandb_df(runs)
+    data = get_wandb_df(runs)
     # stand_dev(data, "small", "METR-LA", "Mean Absolute Error (Horizons Average)")
     # stand_dev(data, "large", "METR-LA", "Mean Absolute Error (Horizons Average)")
     # stand_dev(data, "small", "PEMS-BAY", "Mean Absolute Error (Horizons Average)")
     # stand_dev(data, "large", "PEMS-BAY", "Mean Absolute Error (Horizons Average)")
 
-    # scalability(data)
+    scalability(data)
 
-    # complexity(data, "METR-LA")
-    # complexity(data, "PEMS-BAY")
+    complexity(data, "METR-LA")
+    complexity(data, "PEMS-BAY")

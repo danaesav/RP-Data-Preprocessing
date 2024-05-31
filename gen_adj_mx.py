@@ -83,6 +83,7 @@ def analyze_adj_mx():
     path = "../D2STGNN-github/datasets/sensor_graph/adj_mxs/"
     node_neighbors = {}
     percentage_neighbors = {}
+    edges = {}
     for dataset in datasets:
         dataset_path = path + dataset + "/"
         for t in types:
@@ -102,12 +103,22 @@ def analyze_adj_mx():
                 num_neighbors = np.sum(adj_matrix_thresholded > 0, axis=1)
                 node_neighbors[name] = round(np.mean(num_neighbors), 2)
                 percentage_neighbors[name] = round((node_neighbors[name] / adj_mx[0].shape[0]) * 100, 2)
+                sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(full_path)
+                edgess = 0
+                for i in range(adj_mx.shape[0]):
+                    for j in range(adj_mx.shape[1]):
+                        if adj_mx[i, j] != 0:
+                            edgess+=1
+                edges[name] = edgess
+
 
     wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
     api = wandb.Api()
     runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
     for run in runs:
         # name = run.config['Dataset'].lower() + "-" + run.config['Type'] + "-" + run.config['Size']
-        run.summary["Average Node Neighbors"] = node_neighbors[run.name]
-        run.summary["Average Neighbors Ratio"] = percentage_neighbors[run.name]
+        # run.summary["Average Node Neighbors"] = node_neighbors[run.name]
+        # run.summary["Average Neighbors Ratio"] = percentage_neighbors[run.name]
+        run.summary["Edges"] = edges[run.name]
+        print(run.name, edges[run.name])
         run.update()
