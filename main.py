@@ -4,8 +4,8 @@ import wandb
 
 from DataProcessor import DataProcessor, select_scattered_points
 from gen_adj_mx import analyze_adj_mx
-from generator import generate_h5_files
-from plotting import get_wandb_df, plot_scalability, plot_complexity
+from generator import generate_h5_files, generate_adj_mxs, generate_plots
+from plotting import plot_scalability, plot_complexity
 
 # metrla_box_coordinates = [34.174317, -118.409044, -118.345701, 34.131097]
 metrla_box_coordinates_bigger = [34.18227, -118.511454, -118.345701, 34.131097]
@@ -81,7 +81,9 @@ if __name__ == '__main__':
     #         zero_count2 = (data2 == 0).sum().sum()
     #         print("Total number of zeros in ", name1, ": ", zero_count1 / (data1.shape[0] * data1.shape[1]))
     #         print("Total number of zeros in ", name2, ": ", zero_count2 / (data2.shape[0] * data2.shape[1]))
-    generate_h5_files(metrla)
+    # generate_h5_files(metrla)
+    generate_adj_mxs(metrla)
+    # generate_plots(metrla)
 
     # processor = DataProcessor(metr, sensor_locations_file)
     # within_box, in_comparison_box, outside_of_box = processor.process_data()

@@ -15,11 +15,11 @@ suffixes = ["100", "075", "050", "030", "025"]
 def generate_scattered_points(processor, within_box, in_comparison_box, outside_of_box, h5_filename, data_option):
     for size, suffix in zip(sizes, suffixes):
         scattered_points_small = processor.save_filtered_data(within_box, len(within_box) * size,
-                                                              data_option[4] + "/" + f"{h5_filename}-small-{suffix}")
+                                                            f"{h5_filename}-small-{suffix}")
         processor.plot_data(f"{h5_filename}-small-{suffix}", scattered_points_small, within_box, outside_of_box)
-        scattered_points_large = processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size,
-                                                              data_option[4] + "/" + f"{h5_filename}-large-{suffix}")
-        processor.plot_data(f"{h5_filename}-large-{suffix}", scattered_points_large, in_comparison_box, outside_of_box)
+        # scattered_points_large = processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size,
+        #                                                       data_option[4] + "/" + f"{h5_filename}-large-{suffix}")
+        # processor.plot_data(f"{h5_filename}-large-{suffix}", scattered_points_large, in_comparison_box, outside_of_box)
 
 
 def save_adj_mx(filename, option):
@@ -38,7 +38,7 @@ def save_adj_mx(filename, option):
 def generate_adj_mxs(option):
     for size, suffix in zip(sizes, suffixes):
         save_adj_mx(option[4] + "/" + f"{option[2]}-small-{suffix}", option)
-        save_adj_mx(option[4] + "/" + f"{option[2]}-large-{suffix}", option)
+        # save_adj_mx(option[4] + "/" + f"{option[2]}-large-{suffix}", option)
 
 
 def generate_h5_files(option):
@@ -46,8 +46,12 @@ def generate_h5_files(option):
     within_box, in_comparison_box, outside_of_box = processor.process_data()
     for size, suffix in zip(sizes, suffixes):
         processor.save_filtered_data(within_box, len(within_box) * size, f"{option[2]}-small-{suffix}")
-        processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size, f"{option[2]}-large-{suffix}")
+        # processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size, f"{option[2]}-large-{suffix}")
 
+def generate_plots(option):
+    processor = DataProcessor(option, sensor_locations_file)
+    within_box, in_comparison_box, outside_of_box = processor.process_data()
+    generate_scattered_points(processor, within_box, in_comparison_box, outside_of_box, option[2], option)
 
 def concat_images(option):
     large_images = []
