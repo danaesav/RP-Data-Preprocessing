@@ -20,15 +20,6 @@ def get_in_box(sensor_locs, coordinates_of_box):
                        & (sensor_locs.longitude >= coordinates_of_box[1])
                        & (sensor_locs.longitude <= coordinates_of_box[2])]
 
-def pairwise_distances(points_df, indices):
-    distances = {}
-    for i, j in itertools.combinations(indices, 2):
-        distance = haversine((points_df.at[i, 'latitude'], points_df.at[i, 'longitude']),
-                             (points_df.at[j, 'latitude'], points_df.at[j, 'longitude']),
-                             unit=Unit.KILOMETERS)
-        distances[(i, j)] = distance
-    return distances
-
 
 def select_scattered_points(points, num_points):
     # num_points = int(round(desired_density * get_area(points)))
@@ -128,11 +119,11 @@ class DataProcessor:
         folium.CircleMarker(location=[point.latitude, point.longitude], radius=8, color=color, stroke=False, fill=True,
                             fill_opacity=0.8, opacity=1, popup=point.sensor_id, fill_color=color).add_to(self.this_map)
 
-    def plot_data(self, name, in_box, in_comp_box, in_bigger, out_of_box):
+    def plot_data(self, name, in_box, in_bigger, out_of_box):
         out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
-        in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
+        # in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
         in_bigger.apply(self.plotDot, axis=1, args=("#32cd32",))
-        in_box.apply(self.plotDot, axis=1, args=("#FF0000",))
+        in_box.apply(self.plotDot, axis=1, args=("#0000FF",))
         self.this_map.fit_bounds(self.this_map.get_bounds())
 
         # TO SAVE

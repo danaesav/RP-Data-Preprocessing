@@ -1,13 +1,11 @@
-import os
-import pickle
-
 import numpy as np
 import pandas as pd
 import wandb
-import cv2
 
-from DataProcessor import DataProcessor
-from gen_adj_mx import get_adjacency_matrix
+from DataProcessor import DataProcessor, select_scattered_points
+from gen_adj_mx import analyze_adj_mx
+from generator import generate_h5_files
+from plotting import get_wandb_df, plot_scalability, plot_complexity
 
 # metrla_box_coordinates = [34.174317, -118.409044, -118.345701, 34.131097]
 metrla_box_coordinates_bigger = [34.18227, -118.511454, -118.345701, 34.131097]
@@ -19,10 +17,10 @@ pemsbay_box_coordinates_bigger = [37.393346, -121.952686, -121.873484, 37.329885
 pemsbay_box_coordinates_2 = [37.421656, -122.085214, -122.038178, 37.378017]
 
 # [road_distance_small, sensor_ids_file, dataset_file, coordinates, dataset_name, coordinates_bigger, distances_filename, road_distance_large]
-metrla = [7.5, "metr_ids.txt", "metr-la", metrla_box_coordinates, "METR-LA", metrla_box_coordinates_bigger,
-          "distances_la_2012.csv", 15.4]
-metrla2 = [7.5, "metr_ids.txt", "metr-la", metrla_box_coordinates_2, "METR-LA", metrla_box_coordinates_bigger,
-          "distances_la_2012.csv", 15.4]
+metrla = ["METRLA", "metr_ids.txt", "metr-la", metrla_box_coordinates, "METR-LA", metrla_box_coordinates_bigger,
+          "distances_la_2012.csv"]
+metrla2 = ["METRLA", "metr_ids.txt", "metr-la", metrla_box_coordinates_2, "METR-LA", metrla_box_coordinates_bigger,
+           "distances_la_2012.csv"]
 pemsbay = ["PEMSBAY", "pemsbay_ids.txt", "pems-bay", pemsbay_box_coordinates, "PEMS-BAY",
            pemsbay_box_coordinates_bigger, "distances_bay_2017.csv"]
 pemsbay2 = ["PEMSBAY", "pemsbay_ids.txt", "pems-bay", pemsbay_box_coordinates_2, "PEMS-BAY",
@@ -35,100 +33,80 @@ data_option = metrla
 h5_filename = data_option[2]
 distances_filename = data_option[6]
 
-
-def generate_scattered_points():
-    x = 3
-    # for size, suffix in zip(sizes, suffixes):
-    #     scattered_points_small = processor.save_filtered_data(within_box, len(within_box) * size,
-    #                                                           data_option[4] + "/" + f"{h5_filename}-small-{suffix}")
-    #     processor.plot_data(f"{h5_filename}-small-{suffix}", scattered_points_small, within_box, outside_of_box)
-    #     scattered_points_large = processor.save_filtered_data(in_comparison_box, len(in_comparison_box) * size,
-    #                                                           data_option[4] + "/" + f"{h5_filename}-large-{suffix}")
-    #     processor.plot_data(f"{h5_filename}-large-{suffix}", scattered_points_large, in_comparison_box, outside_of_box)
-
-
-def save_adj_mx(filename, option):
-    with open("ids/" + filename + ".txt") as f:
-        sensor_ids = f.read().strip().split(',')
-    distance_df = pd.read_csv("sensor_graph/" + option[6], dtype={'from': 'str', 'to': 'str'})
-    normalized_k = 0.1
-    _, sensor_id_to_ind, adj_mx = get_adjacency_matrix(distance_df, sensor_ids, normalized_k)
-    # Save to pickle file.
-    if not os.path.exists("../D2STGNN-github/datasets/sensor_graph/adj_mxs/" + option[4]):
-        os.makedirs("../D2STGNN-github/datasets/sensor_graph/adj_mxs/" + option[4])
-    with open("../D2STGNN-github/datasets/sensor_graph/adj_mxs/" + filename + ".pkl", 'wb') as f:
-        pickle.dump([sensor_ids, sensor_id_to_ind, adj_mx], f, protocol=2)
-
-
-def generate_adj_mxs(option):
-    for size, suffix in zip(sizes, suffixes):
-        save_adj_mx(option[4] + "/" + f"{option[2]}-small-{suffix}", option)
-        save_adj_mx(option[4] + "/" + f"{option[2]}-large-{suffix}", option)
-
-
-def save_filtered(process, small_box, large_box, option):
-    for size, suffix in zip(sizes, suffixes):
-        process.save_filtered_data(small_box, len(small_box) * size, f"{option[2]}-small-{suffix}")
-        process.save_filtered_data(large_box, len(large_box) * size, f"{option[2]}-large-{suffix}")
-
-
-# def generate_h5_files(option):
-#     processor = DataProcessor(option, sensor_locations_file)
-#     within_box, in_comparison_box, outside_of_box = processor.process_data()
-#     save_filtered(processor, within_box, in_comparison_box, option)
-
 def update_wandb():
-    wandb.login(key='f08a2911f23c8c1152cbf05edfc79d1e1fcc8fc1')
+    wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
     api = wandb.Api()
-    runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN")
-    for run in runs:
-        print(run.name)
-        t = run.name.split('-')[2]
-        size = run.name.split('-')[-1]
-        run.summary.update(
-            {"Average GPU % Usage": np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])})
-        # run.summary.update({"Type": t})
-        # run.summary.update({"Size": size})
-        run.config["Type"] = t
-        run.config["Size"] = size
-        run.update()
+    runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
+    # for run in runs:
+        # run.summary["AVG Training Time/nodes"] = run.summary['AVG Training time secs/epoch']/run.config['Nodes']
+    #     # run.summary.update(
+    #     #     {"Average GPU % Usage": np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])})
+    #     run.update()
 
 
-def concat_images(option):
-    large_images = []
-    small_images = []
-    for size, suffix in zip(sizes, suffixes):
-        large_images.append(cv2.imread(f"images/{option[4]}/{option[2]}-large-{suffix}.png"))
-        small_images.append(cv2.imread(f"images/{option[4]}/{option[2]}-small-{suffix}.png"))
-    large_image = cv2.vconcat(large_images)
-    small_image = cv2.vconcat(small_images)
-    cv2.imwrite(f"images/{option[4]}/{option[2]}-large.png", large_image)
-    cv2.imwrite(f"images/{option[4]}/{option[2]}-small.png", small_image)
-    # show the output image
-    # cv2.imshow('sea_image.jpg', im_v)
+def scalability(scalability_data):
+    # plot_scalability("Mean Absolute Error (Horizons Average)", scalability_data, "mae")
+    plot_scalability("Root Mean Squared Error (Horizons Average)", scalability_data, "rmse")
+    # plot_scalability("Average Training Time (secs/epoch)", scalability_data, "time")
+    # plot_scalability("Average Training Time/node", scalability_data, "time-per-node")
+    # plot_scalability("Average GPU % Used", scalability_data, "gpu")
+    # plot_scalability("Average Node Neighbors", scalability_data, "neighbors")
+    # plot_scalability("Average Neighbors Ratio", scalability_data, "neigh_ratio")
+
+
+def complexity(complexity_data, dataset):
+    # plot_complexity("Mean Absolute Error (Horizons Average)", complexity_data, dataset, "mae")
+    plot_complexity("Root Mean Squared Error (Horizons Average)", complexity_data, dataset, "rmse")
+    # plot_complexity("Average Training Time (secs/epoch)", complexity_data, dataset, "time")
+    # plot_complexity("Average Training Time/node", complexity_data, dataset, "time-per-node")
+    # plot_complexity("Average GPU % Used", complexity_data, dataset, "gpu")
+    # plot_complexity("Average Node Neighbors", complexity_data, dataset, "neighbors")
+    # plot_complexity("Average Neighbors Ratio", complexity_data, dataset, "neigh_ratio")
+
+
+def stand_dev(dataset, typ, dataset_name, param):
+    filter_type = dataset[dataset['Type'] == typ]
+    filtered = filter_type[filter_type['Dataset'] == dataset_name]
+    print(dataset_name,"-", typ, filtered[param].std())
 
 
 if __name__ == '__main__':
-    processor = DataProcessor(metrla, sensor_locations_file)
-    within_box, in_comparison_box, outside_of_box = processor.process_data()
-    # processor = DataProcessor(metrla2, sensor_locations_file)
-    # within_box2, in_comparison_box2, outside_of_box2 = processor.process_data()
-    print(len(within_box))
-    processor.save_filtered_data(within_box, len(within_box), f"metr-la-small-100")
-    save_adj_mx(metrla[4] + "/" + f"{metrla[2]}-small-100", metrla)
-    processor.plot_data(f"{metrla[2]}-small-100", within_box, in_comparison_box, in_comparison_box, outside_of_box)
+    # for suffix in suffixes:
+    #     for option in [metrla, pemsbay]:
+    #         name1 = option[2] + "large" + "-" + suffix
+    #         name2 = option[2] + "small" + "-" + suffix
+    #         data1 = pd.read_hdf("Datasets/" + option[4] + "/" + name1 + ".h5")
+    #         data2 = pd.read_hdf("Datasets/" + option[4] + "/" + name2 + ".h5")
+    #         zero_count1 = (data1 == 0).sum().sum()
+    #         zero_count2 = (data2 == 0).sum().sum()
+    #         print("Total number of zeros in ", name1, ": ", zero_count1 / (data1.shape[0] * data1.shape[1]))
+    #         print("Total number of zeros in ", name2, ": ", zero_count2 / (data2.shape[0] * data2.shape[1]))
+    generate_h5_files(metrla)
 
-    # processor2 = DataProcessor(pemsbay, sensor_locations_file)
-    # P_within_box, P_in_comparison_box, P_outside_of_box = processor2.process_data()
-    # processor2 = DataProcessor(pemsbay2, sensor_locations_file)
-    # P_within_box2, P_in_comparison_box2, P_outside_of_box2 = processor2.process_data()
-    # processor2.save_filtered_data(P_within_box2, len(P_within_box2), f"pems-bay-comparison-100")
-    # save_adj_mx(pemsbay[4] + "/" + f"{pemsbay[2]}-comparison-100", pemsbay)
-    # print(len(P_within_box2))
-    # processor2.plot_data(f"{pemsbay[2]}-areas-comparison", P_within_box, P_within_box2, P_in_comparison_box, P_outside_of_box)
-    # processor.plot_data(f"{metrla[2]}-areas-comparison", within_box, within_box2, in_comparison_box, outside_of_box)
-    # generate_adj_mxs(metrla)
-    # generate_h5_files(metrla)
-    #
-    # generate_adj_mxs(pemsbay)
-    # generate_h5_files(pemsbay)
+    # processor = DataProcessor(metr, sensor_locations_file)
+    # within_box, in_comparison_box, outside_of_box = processor.process_data()
+    # for size, suffix in zip(sizes, suffixes):
+    #     processor.save_filtered_data(within_box, len(within_box) * size, f"{option[2]}-small-{suffix}")
+
+
+    # update_wandb()
+    # wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
+    # api = wandb.Api()
+    # runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
+    # analyze_adj_mx()
+
+    # processor = DataProcessor(data_option, sensor_locations_file)
+    # in_box, in_comp_box, out_of_box = processor.process_data()
+    # scattered_points = select_scattered_points(in_box, len(in_box))
+    # processor.plot_data("comparison", in_box, in_box, out_of_box)
+
+    # data = get_wandb_df(runs)
+    # stand_dev(data, "small", "METR-LA", "Mean Absolute Error (Horizons Average)")
+    # stand_dev(data, "large", "METR-LA", "Mean Absolute Error (Horizons Average)")
+    # stand_dev(data, "small", "PEMS-BAY", "Mean Absolute Error (Horizons Average)")
+    # stand_dev(data, "large", "PEMS-BAY", "Mean Absolute Error (Horizons Average)")
+
+    # scalability(data)
+
+    # complexity(data, "METR-LA")
+    # complexity(data, "PEMS-BAY")
