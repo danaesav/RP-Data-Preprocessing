@@ -120,4 +120,4 @@ if __name__ == '__main__':
     scalability(data)
 
     complexity(data, "METR-LA")
-    complexity(data, "PEMS-BAY")
+    # complexity(data, "PEMS-BAY")
