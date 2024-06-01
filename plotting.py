@@ -29,16 +29,17 @@ def plot_performance(y, runs, dataset, t, metric_name):
     plt.ylabel(metric_name)
     plt.title(dataset + ': ' + metric_name + ' vs Runtime')
     plt.legend(title='Scenario')
-    plt.savefig("figures/" + dataset + "/lineplot-scalability-" + t + "-" + dataset.lower() + ".png")
+    plt.savefig("figures/" + dataset + "/lineplot-scalability-" + t + "-" + dataset.lower() + ".png", bbox_inches='tight')
     plt.show()
 
 
+
 def plot_scalability(y, data, t):
-    # data2 = data[data['Type'] != "comparison"]
+    # data2 = data[data['Scenario'] != "comparison"]
     filtered_data = data[data['Size'] == "100"]
     g = sns.catplot(
         data=filtered_data, kind="bar",
-        x="Type", y=y, order=scalability_ranking, hue="Dataset", hue_order=["PEMS-BAY", "METR-LA"], palette="dark", height=6
+        x="Scenario", y=y, order=scalability_ranking, hue="Dataset", hue_order=["PEMS-BAY", "METR-LA"], palette="dark", height=6
     )
     g.set_axis_labels("Map Area", y)
     g.fig.suptitle(y + " for both datasets")
@@ -46,17 +47,17 @@ def plot_scalability(y, data, t):
     ax = g.facet_axis(0, 0)
     for i in range(0, len(ax.containers)):
         c = ax.containers[i]
-        labels = [f"{val:.0f}" for val in c.datavalues]
+        labels = [f"{val:.2f}" for val in c.datavalues]
         ax.bar_label(c, labels=labels, label_type='edge')
-    plt.savefig("figures/scalability-" + t + ".png")
+    plt.savefig("figures/scalability-" + t + ".png", bbox_inches='tight')
     plt.show()
 
 def plot_complexity(y, data, dataset, t):
-    data2 = data[data['Type'].isin(["small", "large"])]
+    data2 = data[data['Scenario'].isin(["small", "large"])]
     filtered_data = data2[data2['Dataset'] == dataset]
     g = sns.catplot(
         data=filtered_data, kind="bar",
-        x="Size", y=y, order=complexity_ranking, hue="Type", hue_order=["small", "large"], palette="dark", height=6
+        x="Size", y=y, order=complexity_ranking, hue="Scenario", hue_order=["small", "large"], palette="dark", height=6
     )
     g.set_axis_labels("Map Area", y)
     g.fig.suptitle(y + " for " + dataset)
@@ -64,9 +65,9 @@ def plot_complexity(y, data, dataset, t):
     ax = g.facet_axis(0, 0)
     for i in range(0, len(ax.containers)):
         c = ax.containers[i]
-        labels = [f"{val:.0f}" for val in c.datavalues]
+        labels = [f"{val:.2f}" for val in c.datavalues]
         ax.bar_label(c, labels=labels, label_type='edge')
-    plt.savefig("figures/" + dataset + "/complexity-" + t + "-" + dataset.lower() + ".png")
+    plt.savefig("figures/" + dataset + "/complexity-" + t + "-" + dataset.lower() + ".png", bbox_inches='tight')
     plt.show()
 
 
@@ -83,7 +84,7 @@ def get_wandb_df(runs):
         ('Average Neighbors Ratio', 'summary', 'Average Neighbors Ratio'),
         ('Edges', 'summary', 'Edges'),
         ('Nodes', 'config', 'Nodes'),
-        ('Type', 'config', 'Type'),
+        ('Scenario', 'config', 'Type'),
         ('Size', 'config', 'Size'),
         ('Dataset', 'config', 'Dataset'),
         ('Missing values %', 'config', 'Missing values %')
