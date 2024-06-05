@@ -1,0 +1,12 @@
+haversine~=2.8.1
+pandas~=2.2.2
+folium~=0.16.0
+tables
+
+numpy~=1.26.4
+seaborn~=0.13.2
+wandb~=0.17.0
+matplotlib~=3.9.0
+opencv-python~=4.9.0.80
+scipy~=1.13.0
+pillow~=10.3.0
