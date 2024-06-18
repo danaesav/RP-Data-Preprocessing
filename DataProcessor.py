@@ -136,8 +136,8 @@ class DataProcessor:
         # in_bigger.apply(self.plotDot, axis=1, args=("#32cd32",)) #green
         # in_box.apply(self.plotDot, axis=1, args=("#0000FF",))
 
-        # red, green, orange, brown, blue (for comparison)
-        colors = ["#FF0000", "#32cd32", "#FFA500", "#800080", "#0000FF"]
+        # red, green, orange, purple, blue (for comparison)
+        colors = ["#FF0000", "#32cd32", "#FFA500", "#800080", "#a9a9a9", "#469990", "#0000FF"]
 
         for i in range(1, len(points)):
             level = points[len(points) - i - 1] # apply coloring in reverse order
@@ -149,7 +149,7 @@ class DataProcessor:
 
         # TO SAVE
         self.this_map.save("html/" + name + ".html")
-        img_data = self.this_map._to_png(5)
-        img = Image.open(io.BytesIO(img_data))
-        img.save("images/" + name + ".png")
+        # img_data = self.this_map._to_png(5)
+        # img = Image.open(io.BytesIO(img_data))
+        # img.save("images/" + name + ".png")
         self.reset_map()

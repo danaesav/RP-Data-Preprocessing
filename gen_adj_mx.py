@@ -11,7 +11,10 @@ import scipy.sparse as sp
 import wandb
 def update_wandb(runs):
     for run in runs:
-        data1 = None
+        # TODO remove this
+        if "huge" not in run.name or "gigantic" not in run.name:
+            continue
+
         if run.config["Type"] == "original":
             data1 = pd.read_hdf("Datasets/" + run.config["Dataset"] + "/" + run.config["Dataset"].lower() + ".h5")
         else:
@@ -20,23 +23,21 @@ def update_wandb(runs):
         training_data = data1.iloc[:num_rows_to_take, :]
         zero_count1 = (data1 == 0).sum().sum()
         zero_count_training = (training_data == 0).sum().sum()
-        if "small-0" in run.name:
-            continue
         print("Percentage of missing values in ", run.name, ": ", zero_count1 / (data1.shape[0] * data1.shape[1]) * 100)
         print("Percentage of missing values in training data: ", zero_count_training / (training_data.shape[0] * training_data.shape[1]) * 100)
 
-        # total_training_time = run.summary['AVG Training time secs/epoch'] * 80
-        # total_inference_time = run.summary['AVG Inference time secs/epoch'] * 80
-        # run.summary["Total Inference Time"] = total_inference_time
-        # run.summary["Total Training Time"] = total_training_time
-        # run.summary["Average GPU % Usage"] = np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])
-        # run.update()
-        # run.summary["AVG Training Time/nodes"] = run.summary['Total Training Time'] / run.config['Nodes']
-        # run.summary["AVG Inference Time/nodes"] = run.summary['Total Inference Time'] / run.config['Nodes']
-        # run.summary["AVG Training Time per Node Per Epoch"] = run.summary['AVG Training time secs/epoch'] / run.config['Nodes']
-        # run.config["Missing values %"] = zero_count1 / (data1.shape[0] * data1.shape[1]) * 100
-        # run.config["Missing values % in training"] = zero_count1 / (data1.shape[0] * data1.shape[1]) * 100
-        # run.update()
+        total_training_time = run.summary['AVG Training time secs/epoch'] * 80
+        total_inference_time = run.summary['AVG Inference time secs/epoch'] * 80
+        run.summary["Total Inference Time"] = total_inference_time
+        run.summary["Total Training Time"] = total_training_time
+        run.summary["Average GPU % Usage"] = np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])
+        run.update()
+        run.summary["AVG Training Time/nodes"] = run.summary['Total Training Time'] / run.config['Nodes']
+        run.summary["AVG Inference Time/nodes"] = run.summary['Total Inference Time'] / run.config['Nodes']
+        run.summary["AVG Training Time per Node Per Epoch"] = run.summary['AVG Training time secs/epoch'] / run.config['Nodes']
+        run.config["Missing values %"] = zero_count1 / (data1.shape[0] * data1.shape[1]) * 100
+        run.config["Missing values % in training"] = zero_count1 / (data1.shape[0] * data1.shape[1]) * 100
+        run.update()
 
 def get_adjacency_matrix(distance_df, sensor_ids, normalized_k=0.1):
     """
@@ -107,6 +108,7 @@ types = ["large", "small", "comparison", "original"]
 datasets = ["METR-LA", "PEMS-BAY"]
 
 
+# See node neighbors based on gaussian kernel
 def analyze_adj_mx(runs):
     path = "../D2STGNN-github/datasets/sensor_graph/adj_mxs/"
     node_neighbors = {}
@@ -141,6 +143,8 @@ def analyze_adj_mx(runs):
 
 
     for run in runs:
+        if "huge" not in run.name or "gigantic" not in run.name:
+            continue
         # name = run.config['Dataset'].lower() + "-" + run.config['Type'] + "-" + run.config['Size']
         # if run.config['Dataset'] != "PEMS-BAY":
         #     continue

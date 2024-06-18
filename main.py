@@ -6,19 +6,26 @@ from matplotlib import pyplot as plt
 from scipy.stats import pearsonr, ttest_ind
 
 from DataProcessor import DataProcessor
+from gen_adj_mx import analyze_adj_mx, update_wandb
 
-from plotting import plot_scalability, plot_complexity, plot_performance2
+from plotting import plot_scalability, plot_complexity, plot_performance2, get_wandb_df
 
 metrla_box_coordinates_level_1_25 = [34.188469, -118.509482, -118.439572, 34.132489]
 metrla_box_coordinates_level_2_50 = [34.18227, -118.511454, -118.345701, 34.131097]
-metrla_box_coordinates_level_3_100 = [34.18227, -118.511454, -118.211559, 34.131097]
+metrla_box_coordinates_level_3_75 = [34.18227, -118.511454, -118.272925, 34.131097]
+metrla_box_coordinates_level_4_100 = [34.18227, -118.511454, -118.211559, 34.131097]
+metrla_box_coordinates_level_5_125 = [34.282466, -118.542688, -118.211559, 34.126391]
+metrla_box_coordinates_level_6_150 = [34.282466, -118.542688, -118.211559, 34.096391]
 metrla_box_coordinates_comparison = [34.097491, -118.265575, -118.207500, 34.048523]
 metrla_coordinates = [metrla_box_coordinates_level_1_25, metrla_box_coordinates_level_2_50,
-                      metrla_box_coordinates_level_3_100, metrla_box_coordinates_comparison]
+                      metrla_box_coordinates_level_3_75, metrla_box_coordinates_level_4_100,
+                      metrla_box_coordinates_level_5_125, metrla_box_coordinates_level_6_150,
+                      metrla_box_coordinates_comparison]
 
 pemsbay_box_coordinates_level_1_25 = [37.378342, -121.932272, -121.894512, 37.350266]
 pemsbay_box_coordinates_level_2_50 = [37.393346, -121.952686, -121.873484, 37.329885]
 pemsbay_box_coordinates_level_3_100 = [37.414975, -121.987476, -121.880046, 37.313831]
+# pemsbay_box_coordinates_level_4_150 = [37.418975, -122.020961, -121.880046, 37.313831]
 pemsbay_box_coordinates_level_4_200 = [37.429789, -122.020961, -121.830322, 37.290955]
 pemsbay_box_coordinates_comparison = [37.421656, -122.085214, -122.038178, 37.378017]
 pemsbay_coordinates = [pemsbay_box_coordinates_level_1_25, pemsbay_box_coordinates_level_2_50,
@@ -39,10 +46,10 @@ filename_start = data_option[0].lower()
 def scalability(scalability_data):
     plot_scalability("Mean Absolute Error (Horizons Average)", scalability_data, "mae")
     # plot_scalability("Root Mean Squared Error (Horizons Average)", scalability_data, "rmse")
-    # plot_scalability("Average Training Time (secs/epoch)", scalability_data, "time")
-    # plot_scalability("Training Time per Node (seconds)", scalability_data, "time-per-node")
-    # plot_scalability("Average GPU % Used", scalability_data, "gpu")
-    # plot_scalability("Average Number of Node Neighbors", scalability_data, "neighbors")
+    plot_scalability("Average Training Time (secs/epoch)", scalability_data, "time")
+    plot_scalability("Training Time per Node (seconds)", scalability_data, "time-per-node")
+    plot_scalability("Average GPU % Used", scalability_data, "gpu")
+    plot_scalability("Average Number of Node Neighbors", scalability_data, "neighbors")
     # plot_scalability("Average Neighbors Ratio", scalability_data, "neigh_ratio")
 
     # y_values = ["Average Training Time per Node (seconds)", "Average Number of Node Neighbors", "Average GPU % Used"]
@@ -149,37 +156,24 @@ if __name__ == '__main__':
     # update_wandb(runs)
     # analyze_adj_mx(runs)
     # data = get_wandb_df(runs)
-    # data2['Size'] = data2['Size'].map(lambda x: float(x[1:]) if x[0] != '1' else float(x))
+    # data['Size'] = data['Size'].map(lambda x: float(x[1:]) if x[0] != '1' else float(x))
 
     processor = DataProcessor(metrla)
-    points, out_of_box = processor.get_subsets()
-    # print(len(in_comp_box)) # 102 sensors
-    processor.save_data(points[0], len(points[0]), filename_start + "-huge-100")
-    # processor.plot_data("metr-la-all-100", points, out_of_box)
-
-    processor2 = DataProcessor(pemsbay)
-    points2, out_of_box2 = processor2.get_subsets()
-    processor2.save_data(points[2], len(points[2]), filename_start + "-huge-100")
-    processor2.save_data(points[3], len(points[3]), filename_start + "-gigantic-100")
-    # print(len(in_box2)) # 101 sensors
-    # print(len(in_comp_box2)) #207 sensors
-    # processor2.plot_data("pems-bay-all-100", points2, out_of_box2)
-
-
-
-    # scattered_points = select_scattered_points(in_box, len(in_box))
-    # processor.plot_data("test", in_box, in_comp_box, out_of_box)
-
-
-    # stand_dev(data2, "large", "METR-LA", "Mean Absolute Error (Horizons Average)")
-    # stand_dev(data2, "large", "PEMS-BAY", "Mean Absolute Error (Horizons Average)")
-
+    subsets, other_points = processor.get_subsets()
+    for i in range(len(subsets)):
+        print(len(subsets[i]))
+        processor.save_data(subsets[i], len(subsets[i]), f"metr-la-subset{i}-100")
+    # processor.plot_data("random", subsets, other_points)
 
     # performance(runs)
     # scalability(data)
     # complexity(data)
 
-    # data2 = data2[data2['Dataset'] == "PEMS-BAY"]
-    # data2 = data2[data2['Dataset'] == "METR-LA"]
+
+    # stand_dev(data, "large", "METR-LA", "Mean Absolute Error (Horizons Average)")
+    # stand_dev(data, "large", "PEMS-BAY", "Mean Absolute Error (Horizons Average)")
+
+    # data = data[data['Dataset'] == "PEMS-BAY"]
+    # data = data[data['Dataset'] == "METR-LA"]
 
     # statistics(data2)
