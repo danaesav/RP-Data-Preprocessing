@@ -95,41 +95,7 @@ def plot_scalability(y, data, t):
         c = ax.containers[i]
         labels = [f"{val:.2f}" for val in c.datavalues]
         ax.bar_label(c, labels=labels, label_type='edge')
-    plt.savefig("figures/scalability-" + t + ".pdf", bbox_inches='tight')
-    plt.show()
-
-def plot_scalability2(y_values, data, t):
-    data = data[(data['Size'] == "100")]
-    num_plots = len(y_values)
-    fig, axes = plt.subplots(1, num_plots, figsize=(6 * num_plots, 6))  # 1 row, num_plots columns
-
-    for i, y in enumerate(y_values):
-        ax = axes[i] if num_plots > 1 else axes
-        sns.barplot(data=data, x="Scenario", y=y, order=scalability_ranking, hue="Dataset", palette="dark", ax=ax)
-        ax.set_xlabel("Scenario")
-        ax.set_ylabel(y)
-        ax.set_title(y)
-        # ax.set_title(f"({chr(97+i)}) {y}")
-        ax.text(0.5, -0.1, f"({string.ascii_lowercase[i]})", transform=ax.transAxes, fontsize=12, va='top', ha='right')
-
-        ax.get_legend().remove()
-        for i in range(0, len(ax.containers)):
-            c = ax.containers[i]
-            labels = [f"{val:.2f}" for val in c.datavalues]
-            ax.bar_label(c, labels=labels, label_type='edge')
-
-    # Create a separate subplot for the legend below the subplots
-    legend_ax = fig.add_subplot(111, frameon=False)
-    legend_ax.axis('off')  # Hide the axes of the legend subplot
-    legend_ax.legend(handles=[], labels=[])  # Add an empty legend to reserve space
-    handles, labels = axes[0].get_legend_handles_labels()
-    legend_ax.legend(handles, ["PEMS-BAY", "METR-LA"], loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2,
-                     title="Dataset", title_fontsize='large')  # Add the legend
-    plt.setp(legend_ax.get_legend().get_title(), fontsize='large')  # Set legend title font size
-
-    plt.tight_layout()  # Adjust the layout to reserve space for the legend
-    plt.subplots_adjust(bottom=0.20)
-    plt.savefig("figures/scalability-" + t + ".png", bbox_inches='tight')
+    plt.savefig("figures/scalability/" + "scalability-" + t + ".pdf", bbox_inches='tight')
     plt.show()
 
 
@@ -231,3 +197,41 @@ def get_wandb_df(runs):
     }
 
     return pd.DataFrame(data)
+
+
+
+
+# OTHER PLOTTING FUNCTIONS NOT USED (ONLY TO COMBINE PLOTS)
+def plot_scalability2(y_values, data, t):
+    data = data[(data['Size'] == "100")]
+    num_plots = len(y_values)
+    fig, axes = plt.subplots(1, num_plots, figsize=(6 * num_plots, 6))  # 1 row, num_plots columns
+
+    for i, y in enumerate(y_values):
+        ax = axes[i] if num_plots > 1 else axes
+        sns.barplot(data=data, x="Scenario", y=y, order=scalability_ranking, hue="Dataset", palette="dark", ax=ax)
+        ax.set_xlabel("Scenario")
+        ax.set_ylabel(y)
+        ax.set_title(y)
+        # ax.set_title(f"({chr(97+i)}) {y}")
+        ax.text(0.5, -0.1, f"({string.ascii_lowercase[i]})", transform=ax.transAxes, fontsize=12, va='top', ha='right')
+
+        ax.get_legend().remove()
+        for i in range(0, len(ax.containers)):
+            c = ax.containers[i]
+            labels = [f"{val:.2f}" for val in c.datavalues]
+            ax.bar_label(c, labels=labels, label_type='edge')
+
+    # Create a separate subplot for the legend below the subplots
+    legend_ax = fig.add_subplot(111, frameon=False)
+    legend_ax.axis('off')  # Hide the axes of the legend subplot
+    legend_ax.legend(handles=[], labels=[])  # Add an empty legend to reserve space
+    handles, labels = axes[0].get_legend_handles_labels()
+    legend_ax.legend(handles, ["PEMS-BAY", "METR-LA"], loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2,
+                     title="Dataset", title_fontsize='large')  # Add the legend
+    plt.setp(legend_ax.get_legend().get_title(), fontsize='large')  # Set legend title font size
+
+    plt.tight_layout()  # Adjust the layout to reserve space for the legend
+    plt.subplots_adjust(bottom=0.20)
+    plt.savefig("figures/scalability/" + "scalability-" + t + ".png", bbox_inches='tight')
+    plt.show()

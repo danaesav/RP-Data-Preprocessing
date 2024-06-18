@@ -9,10 +9,7 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 import wandb
-def update_wandb():
-    wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
-    api = wandb.Api()
-    runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
+def update_wandb(runs):
     for run in runs:
         data1 = None
         if run.config["Type"] == "original":
@@ -110,7 +107,7 @@ types = ["large", "small", "comparison", "original"]
 datasets = ["METR-LA", "PEMS-BAY"]
 
 
-def analyze_adj_mx():
+def analyze_adj_mx(runs):
     path = "../D2STGNN-github/datasets/sensor_graph/adj_mxs/"
     node_neighbors = {}
     percentage_neighbors = {}
@@ -143,13 +140,10 @@ def analyze_adj_mx():
                 edges[name] = edgess
 
 
-    wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
-    api = wandb.Api()
-    runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
     for run in runs:
         # name = run.config['Dataset'].lower() + "-" + run.config['Type'] + "-" + run.config['Size']
-        if run.config['Dataset'] != "PEMS-BAY":
-            continue
+        # if run.config['Dataset'] != "PEMS-BAY":
+        #     continue
         run.summary["Average Node Neighbors"] = node_neighbors[run.name]
         run.summary["Average Neighbors Ratio"] = percentage_neighbors[run.name]
         run.summary["Edges"] = edges[run.name]
