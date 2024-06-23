@@ -104,7 +104,7 @@ class DataProcessor:
         data = pd.read_hdf("Datasets/" + self.dataset_name + "/" + self.filename_start + ".h5")
 
         scattered_points = select_scattered_points(points, num_points)
-        ids = scattered_points.sensor_id.tolist()
+        ids = [int(x) for x in scattered_points.sensor_id.tolist()]
         indices = scattered_points.index.tolist()
 
         # save new subset of data
@@ -131,25 +131,28 @@ class DataProcessor:
                             fill_opacity=0.8, opacity=1, popup=point.sensor_id, fill_color=color).add_to(self.this_map)
 
     def plot_data(self, name, points, out_of_box):
-        out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
+        # out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
+        points.apply(self.plotDot, axis=1, args=("#FF0000",))
         # in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
         # in_bigger.apply(self.plotDot, axis=1, args=("#32cd32",)) #green
-        # in_box.apply(self.plotDot, axis=1, args=("#0000FF",))
+
+        # points[6].apply(self.plotDot, axis=1, args=("#a9a9a9",))
+
 
         # red, green, orange, purple, blue (for comparison)
-        colors = ["#FF0000", "#32cd32", "#FFA500", "#800080", "#a9a9a9", "#469990", "#0000FF"]
+        # colors = ["#FF0000", "#32cd32", "#FFA500", "#800080", "#a9a9a9", "#469990", "#0000FF"]
+        #
+        # for i in range(1, len(points)):
+        #     level = points[len(points) - i - 1] # apply coloring in reverse order
+        #     level.apply(self.plotDot, axis=1, args=(colors[len(points) - i - 1],))
 
-        for i in range(1, len(points)):
-            level = points[len(points) - i - 1] # apply coloring in reverse order
-            level.apply(self.plotDot, axis=1, args=(colors[len(points) - i - 1],))
-
-        points[-1].apply(self.plotDot, axis=1, args=("#0000FF",))
+        # points[-1].apply(self.plotDot, axis=1, args=("#0000FF",))
 
         self.this_map.fit_bounds(self.this_map.get_bounds())
 
         # TO SAVE
         self.this_map.save("html/" + name + ".html")
-        # img_data = self.this_map._to_png(5)
-        # img = Image.open(io.BytesIO(img_data))
-        # img.save("images/" + name + ".png")
+        img_data = self.this_map._to_png(5)
+        img = Image.open(io.BytesIO(img_data))
+        img.save("images/" + name + ".png")
         self.reset_map()
