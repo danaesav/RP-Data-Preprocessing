@@ -6,8 +6,60 @@ import os
 import pickle
 
 import numpy as np
+import pandas as pd
 import scipy.sparse as sp
 import wandb
+
+type_to_scenario = {"original": "(3) Original", "subset1": "(1) Small", "subset2": "(2) Large",
+                    "comparison": "(4) Comparison"}
+
+type_to_type = {"subset1": "small", "subset2": "large"}
+
+def update_wandb(runs):
+    for run in runs:
+        if "Group" not in run.config.keys():
+            run.config["Group"] = "2"
+        # run.config["Type"] = type_to_type.get(run.name.split("-")[2], run.name.split("-")[2])
+        # run.config["Scenario"] = type_to_scenario.get(run.name.split("-")[2], "None")
+        run.update()
+        continue
+        if "-0" in run.name:
+            run.config["Experiment"] = "Experiment 2"
+        elif "-100" in run.name:
+            if "comparison" in run.name:
+                run.config["Experiment"] = "Experiment 3"
+            else:
+                run.config["Experiment"] = "Experiment 1"
+        run.update()
+        continue
+        if run.config["Type"] == "original":
+            data1 = pd.read_hdf("Datasets/" + run.config["Dataset"] + "/" + run.config["Dataset"].lower() + ".h5")
+        else:
+            data1 = pd.read_hdf("../D2STGNN-github/datasets/raw_data/" + run.config["Dataset"] + "/" + run.name + ".h5")
+        num_rows_to_take = int(0.7 * data1.shape[0])
+        training_data = data1.iloc[:num_rows_to_take, :]
+        zero_count1 = (data1 == 0).sum().sum()
+        zero_count_training = (training_data == 0).sum().sum()
+        print("Percentage of missing values in ", run.name, ": ", zero_count1 / (data1.shape[0] * data1.shape[1]) * 100)
+        print("Percentage of missing values in training data: ",
+              zero_count_training / (training_data.shape[0] * training_data.shape[1]) * 100)
+
+        total_training_time = run.summary['AVG Training time secs/epoch'] * 80
+        total_inference_time = run.summary['AVG Inference time secs/epoch'] * 80
+        run.summary["Total Inference Time"] = total_inference_time
+        run.summary["Total Training Time"] = total_training_time
+        run.summary["Average GPU % Usage"] = np.mean(run.history(stream="events").loc[:, "system.gpu.process.0.gpu"])
+        # run.summary["Average GPU Memory Allocated %"] = np.mean(run.history(stream="events").loc[:, "system.gpu.0.memoryAllocated"])
+        # run.summary["Average GPU % Memory"] = np.mean(run.history(stream="events").loc[:, "system.gpu.0.memory"])
+        run.update()
+        run.summary["AVG Training Time/nodes"] = run.summary['Total Training Time'] / run.config['Nodes']
+        run.summary["AVG Inference Time/nodes"] = run.summary['Total Inference Time'] / run.config['Nodes']
+        run.summary["AVG Training Time per Node Per Epoch"] = run.summary['AVG Training time secs/epoch'] / run.config[
+            'Nodes']
+        run.config["Missing values %"] = zero_count1 / (data1.shape[0] * data1.shape[1]) * 100
+        run.config["Missing values % in training"] = zero_count_training / (training_data.shape[0] * training_data.shape[1]) * 100
+        run.update()
+        # print("new name", run.name)
 
 
 def get_adjacency_matrix(distance_df, sensor_ids, normalized_k=0.1):
@@ -74,51 +126,44 @@ def load_adj(file_path):
     return adj, adj_mx
 
 
-suffixes = ["025", "030", "050", "075", "100"]
-types = ["large", "small", "comparison", "original"]
+suffixes = ["025", "050", "075", "100"]
+types = ["large", "medium", "small", "comparison", "original"]
 datasets = ["METR-LA", "PEMS-BAY"]
 
 
-def analyze_adj_mx():
+# See node neighbors based on gaussian kernel
+def analyze_adj_mx(runs):
     path = "../D2STGNN-github/datasets/sensor_graph/adj_mxs/"
     node_neighbors = {}
     percentage_neighbors = {}
     edges = {}
-    for dataset in datasets:
-        dataset_path = path + dataset + "/"
-        for t in types:
-            for suffix in suffixes:
-                name = dataset.lower() + "-" + t + "-" + suffix
-                full_path = dataset_path + name + ".pkl"
-                if not os.path.isfile(full_path):
-                    continue
-                adj_mx, adj_ori = load_adj(full_path)
-                sigma = np.std(adj_mx)
-                threshold_kappa = 0.1
-                adj_matrix = np.array(adj_mx)
-                edge_weights = np.exp(-(adj_matrix ** 2) / (2 * (sigma ** 2)))
-                adj_matrix_thresholded = np.where(adj_matrix <= threshold_kappa, edge_weights, 0)
-                for i in range(adj_matrix_thresholded.shape[0]):
-                    adj_matrix_thresholded[i, i] = 0
-                num_neighbors = np.sum(adj_matrix_thresholded > 0, axis=1)
-                node_neighbors[name] = round(np.mean(num_neighbors), 2)
-                percentage_neighbors[name] = round((node_neighbors[name] / adj_mx[0].shape[0]) * 100, 2)
-                sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(full_path)
-                edgess = 0
-                for i in range(adj_mx.shape[0]):
-                    for j in range(adj_mx.shape[1]):
-                        if adj_mx[i, j] != 0:
-                            edgess+=1
-                edges[name] = edgess
-
-
-    wandb.login(key='c273430a11bf8ecb5b86af0f5a16005fc5f2c094')
-    api = wandb.Api()
-    runs = api.runs("traffic-forecasting-gnns-rp/D2STGNN-final")
     for run in runs:
-        # name = run.config['Dataset'].lower() + "-" + run.config['Type'] + "-" + run.config['Size']
-        # run.summary["Average Node Neighbors"] = node_neighbors[run.name]
-        # run.summary["Average Neighbors Ratio"] = percentage_neighbors[run.name]
+        name = run.name
+        full_path = path + run.config["Dataset"].lower() + "/" + name + ".pkl"
+        if not os.path.isfile(full_path):
+            continue
+        adj_mx, adj_ori = load_adj(full_path)
+        # sigma = np.std(adj_mx)
+        # threshold_kappa = 0.1
+        adj_matrix = np.array(adj_mx)
+        # edge_weights = np.exp(-(adj_matrix ** 2) / (2 * (sigma ** 2)))
+        # adj_matrix_thresholded = np.where(adj_matrix <= threshold_kappa, edge_weights, 0)
+        # for i in range(adj_matrix_thresholded.shape[0]):
+        #     adj_matrix_thresholded[i, i] = 0
+        num_neighbors = np.sum(adj_matrix > 0, axis=1)
+        node_neighbors[name] = round(np.mean(num_neighbors), 2)
+        percentage_neighbors[name] = round((node_neighbors[name] / adj_mx[0].shape[0]) * 100, 2)
+        sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(full_path)
+        edgess = 0
+        for i in range(adj_mx.shape[0]):
+            for j in range(adj_mx.shape[1]):
+                if adj_mx[i, j] != 0:
+                    edgess += 1
+        edges[name] = edgess
+
+    for run in runs:
+        run.summary["Average Node Neighbors"] = node_neighbors[run.name]
+        run.summary["Average Neighbors Ratio"] = percentage_neighbors[run.name]
         run.summary["Edges"] = edges[run.name]
         print(run.name, edges[run.name])
         run.update()

@@ -16,9 +16,9 @@
 - Large: 20 - MAE:
   - MAE 4.6434255
   - RMSE 7.4880815
-- Original: 76
-MAE - 717499 (large) 4.0914054
-RMSE - 717499 (large) 6.3607564
+- Original: 76 
+  - MAE 4.0914054 
+  - RMSE 6.3607564
 
 
 #### Overall:

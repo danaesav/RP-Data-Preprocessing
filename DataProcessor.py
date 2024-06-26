@@ -1,11 +1,29 @@
 import io
 import itertools
+import os
+import pickle
 
 import folium
 import pandas as pd
 from PIL import Image
 from haversine import haversine, Unit
 from scipy.spatial import ConvexHull
+
+from gen_adj_mx import get_adjacency_matrix
+
+
+def save_adj_mx(filename, dataset_name, distances_filename):
+    with open("ids/" + dataset_name + "/" + filename + ".txt") as f:
+        sensor_ids = f.read().strip().split(',')
+    distance_df = pd.read_csv("sensor_graph/" + distances_filename, dtype={'from': 'str', 'to': 'str'})
+    normalized_k = 0.1
+    _, sensor_id_to_ind, adj_mx = get_adjacency_matrix(distance_df, sensor_ids, normalized_k)
+    # Save to pickle file.
+    if not os.path.exists("../D2STGNN-github/datasets/sensor_graph/adj_mxs/" + dataset_name):
+        os.makedirs("../D2STGNN-github/datasets/sensor_graph/adj_mxs/" + dataset_name)
+    with open("../D2STGNN-github/datasets/sensor_graph/adj_mxs/" + dataset_name + "/" + filename + ".pkl", 'wb') as f:
+        pickle.dump([sensor_ids, sensor_id_to_ind, adj_mx], f, protocol=2)
+
 
 
 def read_ids_to_array(file_path):
@@ -63,43 +81,34 @@ def select_scattered_points(points, num_points):
 
 
 class DataProcessor:
-    def __init__(self, data_option, sensor_locations_file):
-        self.sensor_locations_file = sensor_locations_file
-        # self.dataset_name = data_option[0]
+    def __init__(self, data_option):
+        self.sensor_locations_file = "graph_sensor_locations.csv"
+        self.dataset_name = data_option[0]
+        self.filename_start = data_option[0].lower()
         self.sensor_ids_file = data_option[1]
-        self.dataset_file = data_option[2]
+        self.distances_filename = data_option[2]
         self.coordinates = data_option[3]
-        self.dataset_name = data_option[4]
-        self.coordinates_bigger = data_option[5]
         self.this_map = folium.Map(prefer_canvas=True, zoom_start=50)
 
-    def process_data(self):
+    def get_subsets(self):
         sensor_locations = pd.read_csv("Datasets/" + self.dataset_name + "/" + self.sensor_locations_file,
                                        index_col=0)
+        points = []
+        for level in self.coordinates:
+            points_in_level = get_in_box(sensor_locations, level)
+            points.append(points_in_level)
 
-        in_box = get_in_box(sensor_locations, self.coordinates)
-        in_comp_box = get_in_box(sensor_locations, self.coordinates_bigger)
+        return points, sensor_locations
 
-        out_of_box = sensor_locations[(sensor_locations.latitude < self.coordinates[3])
-                                      | (sensor_locations.latitude > self.coordinates[0])
-                                      | (sensor_locations.longitude < self.coordinates[1])
-                                      | (sensor_locations.longitude > self.coordinates[2])]
+    def save_data(self, points, num_points, filename):
+        data = pd.read_hdf("Datasets/" + self.dataset_name + "/" + self.filename_start + ".h5")
 
-        return in_box, in_comp_box, out_of_box
-
-    def save_filtered_data(self, in_box, num_points, filename):
-        data = pd.read_hdf("Datasets/" + self.dataset_name + "/" + self.dataset_file + ".h5")
-
-        # ids = in_box.sensor_id.tolist()  # the sensors we train and test with
-        # indices = in_box.index.tolist()  # the indices of the sensors we train and test with
-
-        scattered_points = select_scattered_points(in_box, num_points)
-        ids = scattered_points.sensor_id.tolist()
+        scattered_points = select_scattered_points(points, num_points)
+        ids = [int(x) for x in scattered_points.sensor_id.tolist()]
         indices = scattered_points.index.tolist()
 
         # save new subset of data
         filtered_dataset = data.iloc[:, indices]
-        # filtered_dataset.to_hdf("../Datasets/" + self.dataset_name + "/" + filename+".h5", key='subregion_test', mode='w')
         filtered_dataset.to_hdf("../D2STGNN-github/datasets/raw_data/" + self.dataset_name + "/" + filename + ".h5", key='subregion_test',
                                 mode='w')
 
@@ -110,6 +119,8 @@ class DataProcessor:
             file.write(f"{len(indices)}\n")
             file.write(','.join(map(str, indices)))
 
+        save_adj_mx(filename, self.dataset_name, self.distances_filename)
+
         return scattered_points
 
     def reset_map(self):
@@ -119,11 +130,24 @@ class DataProcessor:
         folium.CircleMarker(location=[point.latitude, point.longitude], radius=8, color=color, stroke=False, fill=True,
                             fill_opacity=0.8, opacity=1, popup=point.sensor_id, fill_color=color).add_to(self.this_map)
 
-    def plot_data(self, name, in_box, in_bigger, out_of_box):
-        out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
+    def plot_data(self, name, points, out_of_box):
+        # out_of_box.apply(self.plotDot, axis=1, args=("#000000",))
+        points.apply(self.plotDot, axis=1, args=("#FF0000",))
         # in_comp_box.apply(self.plotDot, axis=1, args=("#0000FF",))
-        in_bigger.apply(self.plotDot, axis=1, args=("#32cd32",))
-        in_box.apply(self.plotDot, axis=1, args=("#0000FF",))
+        # in_bigger.apply(self.plotDot, axis=1, args=("#32cd32",)) #green
+
+        # points[6].apply(self.plotDot, axis=1, args=("#a9a9a9",))
+
+
+        # red, green, orange, purple, blue (for comparison)
+        # colors = ["#FF0000", "#32cd32", "#FFA500", "#800080", "#a9a9a9", "#469990", "#0000FF"]
+        #
+        # for i in range(1, len(points)):
+        #     level = points[len(points) - i - 1] # apply coloring in reverse order
+        #     level.apply(self.plotDot, axis=1, args=(colors[len(points) - i - 1],))
+
+        # points[-1].apply(self.plotDot, axis=1, args=("#0000FF",))
+
         self.this_map.fit_bounds(self.this_map.get_bounds())
 
         # TO SAVE
